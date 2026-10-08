@@ -157,11 +157,11 @@ curl -X POST http://localhost:8080/api/v1/scanner/reconhecer \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \
   -d '{
-    "identificadorComponente": "BATERIA_LITIO",
+    "identificadorComponente": "MOUSE",
     "confianca": 87.5
   }'
 ```
-> Identificadores válidos nesta fase: `BATERIA_LITIO`, `PLACA_MAE`, `CABO_USB`.
+> Identificadores válidos nesta fase: `PILHA`, `MOUSE`, `FERRO_PASSAR`.
 
 ### Formato de respostas
 

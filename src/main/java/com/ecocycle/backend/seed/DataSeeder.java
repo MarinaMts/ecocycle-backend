@@ -851,12 +851,18 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void criarFigurinhasScanPlaceholder() {
-        // Identificadores alinhados as 3 classes reais do TFLite
-        // (ver documento de decisoes tecnicas, secao 5).
+        // Identificadores alinhados as 3 classes do modelo YOLO11n-cls
+        // rodando on-device (ver mudancas no back-end para o scanner com IA, 07/10/2026).
         String[][] dados = {
-                {"FIG-08", "Bateria Segura", "BATERIA_LITIO", "Reconhecida via scanner: Bateria de Lítio."},
-                {"FIG-09", "Placa-mãe Desvendada", "PLACA_MAE", "Reconhecida via scanner: Placa-mãe."},
-                {"FIG-10", "Cabo Recolhido", "CABO_USB", "Reconhecida via scanner: Cabo USB."}
+                {"FIG-08", "Pilha", "PILHA",
+                        "Pilhas têm metais como zinco e manganês, e alguns tipos têm níquel ou cádmio. " +
+                                "Nunca vão no lixo comum: leve a um ponto de coleta de pilhas."},
+                {"FIG-09", "Mouse", "MOUSE",
+                        "O mouse tem placa eletrônica, plástico e cobre no cabo. " +
+                                "Descarte em um ponto de coleta de lixo eletrônico."},
+                {"FIG-10", "Ferro de passar", "FERRO_PASSAR",
+                        "O ferro tem resistência metálica, fios de cobre e plástico. " +
+                                "Leve a um ponto de coleta de eletroeletrônicos."}
         };
         int ordem = 8;
         for (String[] d : dados) {

@@ -118,7 +118,7 @@ class EndToEndFlowIntegrationTest extends BaseIntegrationTest {
 
         // 10. Scanner - reconhece um componente e ganha outra figurinha
         String payloadScan = """
-                {"identificadorComponente": "CABO_USB", "confianca": 75.0}
+                {"identificadorComponente": "FERRO_PASSAR", "confianca": 75.0}
                 """;
         mockMvc.perform(post("/api/v1/scanner/reconhecer")
                         .header("Authorization", bearer(token))

@@ -216,7 +216,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"identificadorComponente\": \"BATERIA_LITIO\",\n  \"confianca\": 87.5\n}"
+              "raw": "{\n  \"identificadorComponente\": \"MOUSE\",\n  \"confianca\": 87.5\n}"
             },
             "url": { "raw": "{{baseUrl}}/api/v1/scanner/reconhecer", "host": ["{{baseUrl}}"], "path": ["api","v1","scanner","reconhecer"] }
           }

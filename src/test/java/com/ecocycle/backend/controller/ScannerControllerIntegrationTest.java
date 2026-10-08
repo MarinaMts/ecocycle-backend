@@ -15,7 +15,7 @@ class ScannerControllerIntegrationTest extends BaseIntegrationTest {
         String token = registrarERetornarToken();
 
         String payload = """
-                {"identificadorComponente": "BATERIA_LITIO", "confianca": 87.5}
+                {"identificadorComponente": "MOUSE", "confianca": 87.5}
                 """;
 
         mockMvc.perform(post("/api/v1/scanner/reconhecer")
@@ -35,7 +35,7 @@ class ScannerControllerIntegrationTest extends BaseIntegrationTest {
         String token = registrarERetornarToken();
 
         String payload = """
-                {"identificadorComponente": "BATERIA_LITIO", "confianca": 45.0}
+                {"identificadorComponente": "MOUSE", "confianca": 45.0}
                 """;
 
         mockMvc.perform(post("/api/v1/scanner/reconhecer")
@@ -53,7 +53,7 @@ class ScannerControllerIntegrationTest extends BaseIntegrationTest {
         String token = registrarERetornarToken();
 
         String payload = """
-                {"identificadorComponente": "PLACA_MAE", "confianca": 90.0}
+                {"identificadorComponente": "PILHA", "confianca": 90.0}
                 """;
 
         // primeiro scan - desbloqueia
@@ -88,7 +88,7 @@ class ScannerControllerIntegrationTest extends BaseIntegrationTest {
                         .header("Authorization", bearer(token))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -96,7 +96,7 @@ class ScannerControllerIntegrationTest extends BaseIntegrationTest {
         String token = registrarERetornarToken();
 
         String payload = """
-                {"identificadorComponente": "CABO_USB", "confianca": 150.0}
+                {"identificadorComponente": "FERRO_PASSAR", "confianca": 150.0}
                 """;
 
         mockMvc.perform(post("/api/v1/scanner/reconhecer")

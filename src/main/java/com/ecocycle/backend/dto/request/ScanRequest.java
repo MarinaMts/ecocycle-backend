@@ -13,7 +13,7 @@ import jakarta.validation.constraints.NotNull;
  */
 public class ScanRequest {
 
-    // Identificador estavel do componente, ex.: "BATERIA_LITIO", "PLACA_MAE", "CABO_USB"
+    // Identificador estavel do componente, ex.: "PILHA", "MOUSE", "FERRO_PASSAR"
     // (deve corresponder ao campo identificadorScan das figurinhas do tipo SCAN)
     @NotBlank(message = "O identificador do componente e obrigatorio")
     private String identificadorComponente;
