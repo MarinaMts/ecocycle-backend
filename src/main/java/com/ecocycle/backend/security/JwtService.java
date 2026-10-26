@@ -8,6 +8,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.function.Function;
 
@@ -21,6 +22,8 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
+    static final int MIN_SECRET_BYTES = 32;
+
     private final SecretKey secretKey;
     private final long expirationMs;
 
@@ -29,8 +32,24 @@ public class JwtService {
             @Value("${jwt.expiration-ms}") long expirationMs
     ) {
         // A chave deve ter pelo menos 256 bits para HS256.
-        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes());
+        validarSecret(secret);
+        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expirationMs = expirationMs;
+    }
+
+    // Fail fast: sem segredo valido a aplicacao nao sobe (em prod, jwt.secret vem
+    // so da variavel JWT_SECRET, sem fallback - ver application-prod.properties).
+    static void validarSecret(String secret) {
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException(
+                    "jwt.secret nao configurado. Defina a variavel de ambiente JWT_SECRET.");
+        }
+        int bytes = secret.getBytes(StandardCharsets.UTF_8).length;
+        if (bytes < MIN_SECRET_BYTES) {
+            throw new IllegalStateException(
+                    "jwt.secret muito curto: " + bytes + " bytes, minimo " + MIN_SECRET_BYTES
+                            + " (256 bits para HS256). Defina um JWT_SECRET mais longo.");
+        }
     }
 
     public String gerarToken(UserDetails userDetails) {
