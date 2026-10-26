@@ -1,6 +1,7 @@
 package com.ecocycle.backend.security;
 
 import com.ecocycle.backend.dto.response.ErrorResponse;
+import com.ecocycle.backend.logging.HttpRequestUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import jakarta.servlet.FilterChain;
@@ -59,7 +60,7 @@ public class LoginRateLimitFilter extends OncePerRequestFilter {
             return;
         }
 
-        String ip = obterIpCliente(request);
+        String ip = HttpRequestUtils.obterIpCliente(request);
         long agora = Instant.now().toEpochMilli();
 
         Janela janela = tentativasPorIp.computeIfAbsent(ip, k -> new Janela(agora));
@@ -85,14 +86,6 @@ public class LoginRateLimitFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
-    }
-
-    private String obterIpCliente(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
     }
 
     private static class Janela {

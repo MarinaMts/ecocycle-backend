@@ -11,8 +11,10 @@ import com.ecocycle.backend.entity.Pergunta;
 import com.ecocycle.backend.entity.Quiz;
 import com.ecocycle.backend.entity.QuizResultado;
 import com.ecocycle.backend.entity.User;
+import com.ecocycle.backend.exception.ConteudoNaoLidoException;
 import com.ecocycle.backend.exception.RecursoNaoEncontradoException;
 import com.ecocycle.backend.exception.RespostasQuizInvalidasException;
+import com.ecocycle.backend.repository.ConteudoLidoRepository;
 import com.ecocycle.backend.repository.FigurinhaRepository;
 import com.ecocycle.backend.repository.PerguntaRepository;
 import com.ecocycle.backend.repository.QuizRepository;
@@ -38,6 +40,7 @@ public class QuizService {
     private final FigurinhaRepository figurinhaRepository;
     private final UserRepository userRepository;
     private final FigurinhaService figurinhaService;
+    private final ConteudoLidoRepository conteudoLidoRepository;
 
     public QuizService(
             QuizRepository quizRepository,
@@ -45,7 +48,8 @@ public class QuizService {
             QuizResultadoRepository quizResultadoRepository,
             FigurinhaRepository figurinhaRepository,
             UserRepository userRepository,
-            FigurinhaService figurinhaService
+            FigurinhaService figurinhaService,
+            ConteudoLidoRepository conteudoLidoRepository
     ) {
         this.quizRepository = quizRepository;
         this.perguntaRepository = perguntaRepository;
@@ -53,6 +57,7 @@ public class QuizService {
         this.figurinhaRepository = figurinhaRepository;
         this.userRepository = userRepository;
         this.figurinhaService = figurinhaService;
+        this.conteudoLidoRepository = conteudoLidoRepository;
     }
 
     @Transactional(readOnly = true)
@@ -94,6 +99,14 @@ public class QuizService {
 
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Quiz nao encontrado."));
+
+        // A leitura do conteudo libera o quiz (POST /conteudos/{id}/marcar-lido).
+        Long conteudoId = quiz.getConteudoEducativo().getId();
+        if (!conteudoLidoRepository.existsByUser_IdAndConteudoEducativo_Id(user.getId(), conteudoId)) {
+            throw new ConteudoNaoLidoException(
+                    "Leia o conteudo educativo antes de responder o quiz."
+            );
+        }
 
         List<Pergunta> perguntas = perguntaRepository.findByQuizIdComAlternativas(quizId);
 

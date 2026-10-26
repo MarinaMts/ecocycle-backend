@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -64,6 +65,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     );
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+
+                    // Nao chamar MDC.clear()/remove() aqui: a limpeza do MDC da
+                    // requisicao inteira e responsabilidade do CorrelationIdFilter
+                    // (filtro mais externo da cadeia, ver SecurityConfig).
+                    if (userDetails instanceof UserPrincipal principal) {
+                        MDC.put("userId", String.valueOf(principal.getId()));
+                        MDC.put("userEmail", principal.getUsername());
+                    }
                 }
             }
         } catch (Exception ex) {

@@ -38,7 +38,8 @@ class FigurinhaControllerIntegrationTest extends BaseIntegrationTest {
     void figurinhaDesbloqueadaDeveExibirNomeEDescricao_bloqueadaNao() throws Exception {
         String token = registrarERetornarToken();
 
-        // Completa o quiz 1 (Reciclar) para desbloquear a FIG-01
+        // Le o conteudo 1 e completa o quiz 1 (Reciclar) para desbloquear a FIG-01
+        marcarConteudoComoLido(token, 1L);
         String payload = montarPayloadComRespostasCorretas(1L);
         mockMvc.perform(post("/api/v1/quizzes/1/submeter")
                         .header("Authorization", bearer(token))
