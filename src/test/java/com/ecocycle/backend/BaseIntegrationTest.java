@@ -65,6 +65,15 @@ public abstract class BaseIntegrationTest {
         return json.get("data").get("token").asText();
     }
 
+    /**
+     * Marca o conteudo como lido, pre-requisito para submeter o quiz dele.
+     */
+    protected void marcarConteudoComoLido(String token, Long conteudoId) throws Exception {
+        mockMvc.perform(post("/api/v1/conteudos/" + conteudoId + "/marcar-lido")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk());
+    }
+
     protected String emailAleatorio() {
         return "user" + UUID.randomUUID().toString().substring(0, 8) + "@teste.com";
     }

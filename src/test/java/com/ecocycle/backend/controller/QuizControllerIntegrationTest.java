@@ -25,6 +25,7 @@ class QuizControllerIntegrationTest extends BaseIntegrationTest {
 
     // Quiz do conteudo EDU-01 (Reciclar) - primeiro conteudo/quiz seedado, id=1 de forma estavel
     private static final Long QUIZ_ID_EDU01 = 1L;
+    private static final Long CONTEUDO_ID_EDU01 = 1L;
 
     @Test
     void deveRetornarQuizSemExporGabarito() throws Exception {
@@ -42,6 +43,7 @@ class QuizControllerIntegrationTest extends BaseIntegrationTest {
     @Test
     void deveConcluirQuizComTodasRespostasCorretasEGanharXpEFigurinha() throws Exception {
         String token = registrarERetornarToken();
+        marcarConteudoComoLido(token, CONTEUDO_ID_EDU01);
         String payload = montarPayloadComRespostas(QUIZ_ID_EDU01, true);
 
         mockMvc.perform(post("/api/v1/quizzes/" + QUIZ_ID_EDU01 + "/submeter")
@@ -61,6 +63,7 @@ class QuizControllerIntegrationTest extends BaseIntegrationTest {
     @Test
     void refazerQuizNaoDeveGerarXpNemFigurinhaAdicional() throws Exception {
         String token = registrarERetornarToken();
+        marcarConteudoComoLido(token, CONTEUDO_ID_EDU01);
         String payload = montarPayloadComRespostas(QUIZ_ID_EDU01, true);
 
         // primeira vez
@@ -87,6 +90,7 @@ class QuizControllerIntegrationTest extends BaseIntegrationTest {
     @Test
     void deveAceitarQuizComRespostasErradasSemNotaMinima() throws Exception {
         String token = registrarERetornarToken();
+        marcarConteudoComoLido(token, CONTEUDO_ID_EDU01);
         // sem nota minima: mesmo errando algumas, ja libera XP e figurinha na 1a vez
         String payload = montarPayloadComRespostas(QUIZ_ID_EDU01, false);
 
@@ -104,6 +108,7 @@ class QuizControllerIntegrationTest extends BaseIntegrationTest {
     @Test
     void deveRejeitarSubmissaoComPerguntasFaltando() throws Exception {
         String token = registrarERetornarToken();
+        marcarConteudoComoLido(token, CONTEUDO_ID_EDU01);
 
         List<Pergunta> perguntas = perguntaRepository.findByQuizIdComAlternativas(QUIZ_ID_EDU01);
 
@@ -123,6 +128,40 @@ class QuizControllerIntegrationTest extends BaseIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(root)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void deveRejeitarQuizSemLeituraPreviaDoConteudo() throws Exception {
+        String token = registrarERetornarToken();
+        String payload = montarPayloadComRespostas(QUIZ_ID_EDU01, true);
+
+        mockMvc.perform(post("/api/v1/quizzes/" + QUIZ_ID_EDU01 + "/submeter")
+                        .header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Leia o conteudo educativo antes de responder o quiz."));
+
+        // Nada foi registrado: o usuario continua sem XP
+        mockMvc.perform(get("/api/v1/progresso/me")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.xpTotal").value(0));
+    }
+
+    @Test
+    void deveAceitarQuizAposLeituraDoConteudo() throws Exception {
+        String token = registrarERetornarToken();
+        String payload = montarPayloadComRespostas(QUIZ_ID_EDU01, true);
+
+        marcarConteudoComoLido(token, CONTEUDO_ID_EDU01);
+
+        mockMvc.perform(post("/api/v1/quizzes/" + QUIZ_ID_EDU01 + "/submeter")
+                        .header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.primeiraConclusao").value(true));
     }
 
     @Test
