@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- Registra as conversoes %clr/%wex usadas no padrao colorido de dev (nao vem por padrao no Logback puro) -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <springProperty scope="context" name="appName" source="spring.application.name"/>
+
+    <!--
+        Producao: uma linha JSON por evento (LogstashEncoder), pronta para ser
+        coletada por qualquer agregador de log (ELK, Loki, Datadog, etc.).
+        Caller data habilitado: expõe classe/metodo/linha reais de onde o log
+        foi emitido. Tem custo de performance (inspeciona a stack trace a cada
+        chamada de log), aceitavel para o volume atual da aplicacao.
+    -->
+    <springProfile name="prod">
+        <appender name="CONSOLE_JSON" class="ch.qos.logback.core.ConsoleAppender">
+            <includeCallerData>true</includeCallerData>
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <timeZone>America/Sao_Paulo</timeZone>
+                <includeCallerData>true</includeCallerData>
+                <customFields>{"service":"${appName}","environment":"prod"}</customFields>
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE_JSON"/>
+        </root>
+    </springProfile>
+
+    <!--
+        Dev/test: texto legivel e colorido no console, com o MDC (requestId,
+        userId, userEmail) visivel ao lado da mensagem, para manter paridade
+        com o que aparece no JSON de producao.
+    -->
+    <springProfile name="!prod">
+        <appender name="CONSOLE_PLAIN" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+                <pattern>%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%-5level) %clr([%thread]){faint} %clr(%logger{36}){cyan} - %msg %mdc%n%ex</pattern>
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE_PLAIN"/>
+        </root>
+    </springProfile>
+
+</configuration>

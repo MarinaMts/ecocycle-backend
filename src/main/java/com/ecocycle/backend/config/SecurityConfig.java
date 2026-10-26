@@ -1,11 +1,14 @@
 package com.ecocycle.backend.config;
 
+import com.ecocycle.backend.logging.CorrelationIdFilter;
 import com.ecocycle.backend.security.CustomUserDetailsService;
 import com.ecocycle.backend.security.JwtAuthenticationEntryPoint;
 import com.ecocycle.backend.security.JwtAuthenticationFilter;
 import com.ecocycle.backend.security.LoginRateLimitFilter;
+import jakarta.servlet.Filter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -32,6 +35,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final LoginRateLimitFilter loginRateLimitFilter;
+    private final CorrelationIdFilter correlationIdFilter;
 
     // Origens permitidas para CORS, separadas por virgula. Relevante apenas para
     // clientes baseados em navegador (ex.: Flutter Web, um futuro painel admin,
@@ -45,12 +49,14 @@ public class SecurityConfig {
             CustomUserDetailsService userDetailsService,
             JwtAuthenticationFilter jwtAuthenticationFilter,
             JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
-            LoginRateLimitFilter loginRateLimitFilter
+            LoginRateLimitFilter loginRateLimitFilter,
+            CorrelationIdFilter correlationIdFilter
     ) {
         this.userDetailsService = userDetailsService;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
         this.loginRateLimitFilter = loginRateLimitFilter;
+        this.correlationIdFilter = correlationIdFilter;
     }
 
     @Bean
@@ -70,6 +76,31 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
+    }
+
+    // Os filtros customizados sao @Component, entao o Spring Boot tambem os
+    // registraria automaticamente como filtros de servlet, FORA da cadeia de
+    // seguranca (e antes dela). Desabilitar esse registro garante que eles rodem
+    // apenas dentro do SecurityFilterChain, na ordem definida abaixo.
+    @Bean
+    public FilterRegistrationBean<CorrelationIdFilter> correlationIdFilterRegistration(CorrelationIdFilter filter) {
+        return desabilitarRegistroAutomatico(filter);
+    }
+
+    @Bean
+    public FilterRegistrationBean<LoginRateLimitFilter> loginRateLimitFilterRegistration(LoginRateLimitFilter filter) {
+        return desabilitarRegistroAutomatico(filter);
+    }
+
+    @Bean
+    public FilterRegistrationBean<JwtAuthenticationFilter> jwtAuthenticationFilterRegistration(JwtAuthenticationFilter filter) {
+        return desabilitarRegistroAutomatico(filter);
+    }
+
+    private static <T extends Filter> FilterRegistrationBean<T> desabilitarRegistroAutomatico(T filter) {
+        FilterRegistrationBean<T> registro = new FilterRegistrationBean<>(filter);
+        registro.setEnabled(false);
+        return registro;
     }
 
     @Bean
@@ -97,8 +128,16 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
-                .addFilterBefore(loginRateLimitFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                // Ordem explicita: correlationId -> rateLimit -> jwt -> filtro padrao.
+                // Garante requestId disponivel mesmo em requisicoes bloqueadas pelo
+                // rate limiter, e que a duracao do access log reflita o tempo real.
+                // IMPORTANTE: um filtro customizado so pode ser usado como referencia
+                // em addFilterBefore/After depois de ele mesmo ja ter sido registrado -
+                // por isso a ordem das chamadas abaixo e do mais interno (relativo a um
+                // filtro padrao do Spring Security) para o mais externo.
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(loginRateLimitFilter, JwtAuthenticationFilter.class)
+                .addFilterBefore(correlationIdFilter, LoginRateLimitFilter.class);
 
         // Necessario apenas para o console do H2 funcionar em iframe durante o desenvolvimento
         http.headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));

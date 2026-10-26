@@ -15,7 +15,7 @@ class ScannerControllerIntegrationTest extends BaseIntegrationTest {
         String token = registrarERetornarToken();
 
         String payload = """
-                {"identificadorComponente": "MOUSE", "confianca": 87.5}
+                {"identificadorComponente": "MOUSE", "confianca": 95.0}
                 """;
 
         mockMvc.perform(post("/api/v1/scanner/reconhecer")
@@ -45,6 +45,23 @@ class ScannerControllerIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.reconhecido").value(false))
                 .andExpect(jsonPath("$.data.novaDesbloqueada").value(false))
+                .andExpect(jsonPath("$.data.figurinha").doesNotExist());
+    }
+
+    @Test
+    void deveTratarComoNaoReconhecidoLogoAbaixoDoLimiarDe90() throws Exception {
+        String token = registrarERetornarToken();
+
+        String payload = """
+                {"identificadorComponente": "MOUSE", "confianca": 89.9}
+                """;
+
+        mockMvc.perform(post("/api/v1/scanner/reconhecer")
+                        .header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.reconhecido").value(false))
                 .andExpect(jsonPath("$.data.figurinha").doesNotExist());
     }
 
