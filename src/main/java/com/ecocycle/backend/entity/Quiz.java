@@ -32,7 +32,7 @@ public class Quiz {
     @JoinColumn(name = "conteudo_educativo_id", nullable = false, unique = true)
     private ConteudoEducativo conteudoEducativo;
 
-    // XP concedido na primeira conclusao (refazer o quiz nao gera XP extra)
+    // XP por pergunta acertada. Vale o melhor resultado: refazer o quiz so concede a diferenca quando o usuario acerta mais do que antes.
     @Column(nullable = false)
     @Builder.Default
     private Integer xpRecompensa = 10;

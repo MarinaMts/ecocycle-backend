@@ -88,9 +88,12 @@ public class QuizService {
     }
 
     /**
-     * Corrige as respostas, registra o resultado (sem historico por tentativa),
-     * concede XP e desbloqueia a figurinha correspondente apenas na primeira
-     * conclusao (ver documento de decisoes tecnicas, secao 3).
+     * Corrige as respostas e registra o melhor resultado do usuario no quiz
+     * (sem historico por tentativa).
+     * XP: cada acerto vale quiz.xpRecompensa. Vale o melhor resultado - ao
+     * refazer, o usuario so ganha a diferenca se acertar mais do que antes.
+     * A figurinha e desbloqueada na primeira conclusao, independente dos
+     * acertos.
      */
     @Transactional
     public QuizResultadoResponse submeterRespostas(String email, Long quizId, SubmeterQuizRequest request) {
@@ -155,6 +158,7 @@ public class QuizService {
                 .orElse(null);
 
         boolean primeiraConclusao = (resultado == null);
+        int xpPorAcerto = quiz.getXpRecompensa();
         int xpGanho = 0;
         FigurinhaResponse figurinhaResponse = null;
 
@@ -167,9 +171,7 @@ public class QuizService {
                     .xpConcedido(true)
                     .build();
 
-            xpGanho = quiz.getXpRecompensa();
-            user.setXpTotal(user.getXpTotal() + xpGanho);
-            userRepository.save(user);
+            xpGanho = acertos * xpPorAcerto;
 
             Figurinha figurinha = figurinhaRepository.findByConteudoEducativo_Id(quiz.getConteudoEducativo().getId())
                     .orElse(null);
@@ -183,10 +185,20 @@ public class QuizService {
             log.info("Quiz concluido pela primeira vez. userId={}, quizId={}, acertos={}/{}, xp={}",
                     user.getId(), quizId, acertos, perguntas.size(), xpGanho);
         } else {
-            resultado.setAcertos(acertos);
+            // acertos guarda o melhor resultado: so sobe, e o XP acompanha.
+            int melhorAnterior = resultado.getAcertos();
+            if (acertos > melhorAnterior) {
+                xpGanho = (acertos - melhorAnterior) * xpPorAcerto;
+                resultado.setAcertos(acertos);
+            }
             resultado.setTotalPerguntas(perguntas.size());
-            log.info("Quiz refeito (sem XP adicional). userId={}, quizId={}, acertos={}/{}",
-                    user.getId(), quizId, acertos, perguntas.size());
+            log.info("Quiz refeito. userId={}, quizId={}, acertos={}/{}, melhorAnterior={}, xp={}",
+                    user.getId(), quizId, acertos, perguntas.size(), melhorAnterior, xpGanho);
+        }
+
+        if (xpGanho > 0) {
+            user.setXpTotal(user.getXpTotal() + xpGanho);
+            userRepository.save(user);
         }
 
         quizResultadoRepository.save(resultado);

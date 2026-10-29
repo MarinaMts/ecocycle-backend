@@ -42,9 +42,14 @@ public class QuizController {
             @Valid @RequestBody SubmeterQuizRequest request
     ) {
         QuizResultadoResponse resultado = quizService.submeterRespostas(principal.getUsername(), id, request);
-        String mensagem = resultado.isPrimeiraConclusao()
-                ? "Quiz concluido! XP e figurinha (se houver) liberados."
-                : "Quiz refeito. Nenhum XP adicional concedido.";
+        String mensagem;
+        if (resultado.isPrimeiraConclusao()) {
+            mensagem = "Quiz concluido! XP e figurinha (se houver) liberados.";
+        } else if (resultado.getXpGanho() > 0) {
+            mensagem = "Quiz refeito: voce superou seu melhor resultado e ganhou mais XP.";
+        } else {
+            mensagem = "Quiz refeito. Para ganhar mais XP, acerte mais do que da ultima vez.";
+        }
         return ResponseEntity.ok(ApiResponse.of(resultado, mensagem));
     }
 }
