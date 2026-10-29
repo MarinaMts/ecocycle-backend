@@ -16,7 +16,7 @@ class PontoColetaControllerIntegrationTest extends BaseIntegrationTest {
         mockMvc.perform(get("/api/v1/pontos-coleta")
                         .header("Authorization", bearer(token)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.length()").value(6))
+                .andExpect(jsonPath("$.data.length()").value(15))
                 // sem lat/lng, nao calcula distancia
                 .andExpect(jsonPath("$.data[0].distanciaKm").doesNotExist());
     }

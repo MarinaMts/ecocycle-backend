@@ -217,6 +217,18 @@ mvn spring-boot:run -Dspring-boot.run.profiles=prod
 
 Na primeira execução, o Flyway cria automaticamente todas as tabelas a partir das migrations versionadas.
 
+## Como adicionar conteúdo, figurinhas e pontos de coleta
+
+Os dados fixos ficam num catálogo em código, no pacote `seed/`: conteúdos (com quiz e figurinha QUIZ) em `CatalogoConteudos.java`; figurinhas SCAN e pontos de coleta em `CatalogoSeed.java`. Para adicionar ou corrigir algo, edite o catálogo e suba a aplicação (ou faça o deploy). A cada start, o `DataSeeder` sincroniza o banco com o catálogo, item a item: cria o que falta e atualiza no lugar (mesmo id) o que mudou. Tudo roda numa transação só: se algo falhar, nada é gravado e o start falha com a causa no log (no Render, a versão anterior continua no ar). O log mostra, por tipo, quantos itens foram criados e quantos foram atualizados.
+
+Limites:
+
+- **Nada é removido.** Tirar um item do catálogo não apaga nada do banco (nem pergunta, alternativa, figurinha ou ponto).
+- **O código ou o nome é a chave:** `codigo` para conteúdos e figurinhas, `nome` para pontos de coleta, ordem para perguntas e letra para alternativas. Trocar o código ou o nome cria um item novo, e o antigo continua no banco.
+- **Editar direto no banco os campos que estão no catálogo não adianta:** a edição é sobrescrita no próximo start.
+- **Para tirar um ponto do mapa**, faça `ativo = false` direto no banco. O seed nunca mexe no campo `ativo` de pontos que já existem.
+- Antes de gravar, o catálogo é validado: códigos e nomes repetidos, textos maiores que a coluna, `identificadorScan` fora de `[A-Z0-9_]+` ou repetido, pergunta sem exatamente 4 alternativas e 1 correta, coordenadas inválidas.
+
 ## Deploy
 
 A aplicação é containerizada via `Dockerfile` (build multi-stage: Maven para compilar, JRE 17 enxuto para rodar) e hospedada no [Render](https://render.com) como Web Service, conectado ao banco Postgres do Neon.
@@ -236,7 +248,7 @@ src/main/java/com/ecocycle/backend/
 ├── config/         # Configurações (CORS, Swagger, etc.)
 ├── exception/      # Tratamento centralizado de erros
 ├── enums/          # Enums de domínio
-└── seed/           # Seed inicial de dados (conteúdo, quizzes, pontos de coleta)
+└── seed/           # Catálogo de dados fixos + sincronização no start (DataSeeder)
 
 src/main/resources/
 ├── application.properties        # Perfil padrão (dev/test, H2)
