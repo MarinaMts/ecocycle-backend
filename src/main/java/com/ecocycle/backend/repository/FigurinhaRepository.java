@@ -1,6 +1,7 @@
 package com.ecocycle.backend.repository;
 
 import com.ecocycle.backend.entity.Figurinha;
+import com.ecocycle.backend.enums.TipoFigurinha;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -13,4 +14,6 @@ public interface FigurinhaRepository extends JpaRepository<Figurinha, Long> {
     Optional<Figurinha> findByConteudoEducativo_Id(Long conteudoEducativoId);
 
     Optional<Figurinha> findByCodigo(String codigo);
+
+    boolean existsByTipoAndIdentificadorScanAndCodigoNot(TipoFigurinha tipo, String identificadorScan, String codigo);
 }
