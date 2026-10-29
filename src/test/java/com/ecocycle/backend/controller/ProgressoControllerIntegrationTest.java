@@ -54,7 +54,7 @@ class ProgressoControllerIntegrationTest extends BaseIntegrationTest {
         mockMvc.perform(get("/api/v1/progresso/me")
                         .header("Authorization", bearer(token)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.xpTotal").value(10))
+                .andExpect(jsonPath("$.data.xpTotal").value(50))
                 .andExpect(jsonPath("$.data.conteudosLidos").value(1))
                 .andExpect(jsonPath("$.data.quizzesConcluidos").value(1))
                 .andExpect(jsonPath("$.data.figurinhasDesbloqueadas").value(1));

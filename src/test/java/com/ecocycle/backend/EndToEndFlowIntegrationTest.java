@@ -92,7 +92,7 @@ class EndToEndFlowIntegrationTest extends BaseIntegrationTest {
                         .content(objectMapper.writeValueAsString(root)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.acertos").value(5))
-                .andExpect(jsonPath("$.data.xpGanho").value(10))
+                .andExpect(jsonPath("$.data.xpGanho").value(50))
                 .andExpect(jsonPath("$.data.figurinhaDesbloqueada.codigo").value("FIG-01"));
 
         // 7. Album reflete a figurinha desbloqueada
@@ -103,7 +103,7 @@ class EndToEndFlowIntegrationTest extends BaseIntegrationTest {
         // 8. Progresso consolidado bate com o que foi feito ate aqui
         mockMvc.perform(get("/api/v1/progresso/me").header("Authorization", bearer(token)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.xpTotal").value(10))
+                .andExpect(jsonPath("$.data.xpTotal").value(50))
                 .andExpect(jsonPath("$.data.conteudosLidos").value(1))
                 .andExpect(jsonPath("$.data.quizzesConcluidos").value(1))
                 .andExpect(jsonPath("$.data.figurinhasDesbloqueadas").value(1));

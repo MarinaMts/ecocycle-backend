@@ -54,14 +54,15 @@ class QuizControllerIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.data.acertos").value(5))
                 .andExpect(jsonPath("$.data.totalPerguntas").value(5))
                 .andExpect(jsonPath("$.data.primeiraConclusao").value(true))
-                .andExpect(jsonPath("$.data.xpGanho").value(10))
-                .andExpect(jsonPath("$.data.xpTotalAtual").value(10))
+                // 5 acertos x 10 XP por acerto
+                .andExpect(jsonPath("$.data.xpGanho").value(50))
+                .andExpect(jsonPath("$.data.xpTotalAtual").value(50))
                 .andExpect(jsonPath("$.data.figurinhaDesbloqueada.codigo").value("FIG-01"))
                 .andExpect(jsonPath("$.data.figurinhaDesbloqueada.desbloqueada").value(true));
     }
 
     @Test
-    void refazerQuizNaoDeveGerarXpNemFigurinhaAdicional() throws Exception {
+    void refazerSemMelhorarNaoDeveGerarXpNemFigurinhaAdicional() throws Exception {
         String token = registrarERetornarToken();
         marcarConteudoComoLido(token, CONTEUDO_ID_EDU01);
         String payload = montarPayloadComRespostas(QUIZ_ID_EDU01, true);
@@ -72,9 +73,10 @@ class QuizControllerIntegrationTest extends BaseIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.xpGanho").value(10));
+                .andExpect(jsonPath("$.data.xpGanho").value(50));
 
-        // segunda vez - mesmo com acerto total, nao deve gerar XP nem figurinha novamente
+        // segunda vez com o mesmo resultado - nao supera o melhor, entao nao
+        // gera XP nem figurinha novamente
         mockMvc.perform(post("/api/v1/quizzes/" + QUIZ_ID_EDU01 + "/submeter")
                         .header("Authorization", bearer(token))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -83,15 +85,50 @@ class QuizControllerIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.data.acertos").value(5))
                 .andExpect(jsonPath("$.data.primeiraConclusao").value(false))
                 .andExpect(jsonPath("$.data.xpGanho").value(0))
-                .andExpect(jsonPath("$.data.xpTotalAtual").value(10))
+                .andExpect(jsonPath("$.data.xpTotalAtual").value(50))
                 .andExpect(jsonPath("$.data.figurinhaDesbloqueada").doesNotExist());
+    }
+
+    @Test
+    void refazerMelhorandoDeveConcederSoADiferencaDeXp() throws Exception {
+        String token = registrarERetornarToken();
+        marcarConteudoComoLido(token, CONTEUDO_ID_EDU01);
+
+        // primeira vez errando tudo: figurinha liberada, nenhum XP
+        mockMvc.perform(post("/api/v1/quizzes/" + QUIZ_ID_EDU01 + "/submeter")
+                        .header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(montarPayloadComRespostas(QUIZ_ID_EDU01, false)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.xpGanho").value(0));
+
+        // refazendo com acerto total: ganha os 5 acertos que faltavam
+        mockMvc.perform(post("/api/v1/quizzes/" + QUIZ_ID_EDU01 + "/submeter")
+                        .header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(montarPayloadComRespostas(QUIZ_ID_EDU01, true)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.primeiraConclusao").value(false))
+                .andExpect(jsonPath("$.data.xpGanho").value(50))
+                .andExpect(jsonPath("$.data.xpTotalAtual").value(50))
+                .andExpect(jsonPath("$.data.figurinhaDesbloqueada").doesNotExist());
+
+        // errando de novo: o melhor resultado continua valendo, sem perder XP
+        mockMvc.perform(post("/api/v1/quizzes/" + QUIZ_ID_EDU01 + "/submeter")
+                        .header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(montarPayloadComRespostas(QUIZ_ID_EDU01, false)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.xpGanho").value(0))
+                .andExpect(jsonPath("$.data.xpTotalAtual").value(50));
     }
 
     @Test
     void deveAceitarQuizComRespostasErradasSemNotaMinima() throws Exception {
         String token = registrarERetornarToken();
         marcarConteudoComoLido(token, CONTEUDO_ID_EDU01);
-        // sem nota minima: mesmo errando algumas, ja libera XP e figurinha na 1a vez
+        // sem nota minima: errando tudo, a figurinha e liberada na 1a vez,
+        // mas o XP e por acerto - entao nenhum XP
         String payload = montarPayloadComRespostas(QUIZ_ID_EDU01, false);
 
         mockMvc.perform(post("/api/v1/quizzes/" + QUIZ_ID_EDU01 + "/submeter")
@@ -101,7 +138,7 @@ class QuizControllerIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.acertos").value(0))
                 .andExpect(jsonPath("$.data.primeiraConclusao").value(true))
-                .andExpect(jsonPath("$.data.xpGanho").value(10))
+                .andExpect(jsonPath("$.data.xpGanho").value(0))
                 .andExpect(jsonPath("$.data.figurinhaDesbloqueada.codigo").value("FIG-01"));
     }
 
