@@ -22,13 +22,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import javax.sql.DataSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -57,6 +61,8 @@ class DataSeederSincronizacaoTest {
     private DataSeeder dataSeeder;
     @Autowired
     private JdbcTemplate jdbc;
+    @Autowired
+    private DataSource dataSource;
     @Autowired
     private ConteudoEducativoRepository conteudoRepository;
     @Autowired
@@ -104,7 +110,7 @@ class DataSeederSincronizacaoTest {
 
         assertThat(contagens()).isEqualTo(antes);
         assertThat(antes.get("conteudos_educativos")).isEqualTo(7);
-        assertThat(antes.get("figurinhas")).isEqualTo(10);
+        assertThat(antes.get("figurinhas")).isEqualTo(16);
         assertThat(antes.get("pontos_coleta")).isEqualTo(15);
         assertNadaCriadoNemAtualizado(segunda);
     }
@@ -140,6 +146,25 @@ class DataSeederSincronizacaoTest {
         assertThat(figurinha.getTipo()).isEqualTo(TipoFigurinha.SCAN);
         assertThat(figurinha.getIdentificadorScan()).isEqualTo(ultimaScan.identificadorScan());
         assertThat(figurinha.getNome()).isEqualTo(ultimaScan.nome());
+    }
+
+    @Test
+    void figurinhasCriadasPelaMigrationV5NaoSaoAlteradasPeloSeed() {
+        // No Neon, FIG-11 a FIG-16 foram criadas pela V5. Simula isso aqui e
+        // garante que o catalogo tem exatamente os mesmos textos da migration.
+        Map<String, Long> antes = contagens();
+        List<String> codigosV5 = List.of("FIG-11", "FIG-12", "FIG-13", "FIG-14", "FIG-15", "FIG-16");
+        for (String codigo : codigosV5) {
+            figurinhaRepository.delete(figurinhaRepository.findByCodigo(codigo).orElseThrow());
+        }
+
+        new ResourceDatabasePopulator(new ClassPathResource("db/migration/V5__scanner_novos_itens.sql"))
+                .execute(dataSource);
+        assertThat(contagens()).isEqualTo(antes);
+
+        DataSeeder.Resumo resumo = dataSeeder.sincronizar(catalogo);
+
+        assertNadaCriadoNemAtualizado(resumo);
     }
 
     // ==================== Atualizacao no lugar ====================
