@@ -101,7 +101,7 @@ public class DataSeeder implements CommandLineRunner {
 
         criarFigurinhasScanPlaceholder();
 
-        log.info("Seed concluido: 7 conteudos, 7 quizzes (35 perguntas), 10 figurinhas.");
+        log.info("Seed concluido: 7 conteudos, 7 quizzes (35 perguntas), 16 figurinhas.");
     }
 
     // ==================== EDU-01 · Reciclar ====================
@@ -851,8 +851,9 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void criarFigurinhasScanPlaceholder() {
-        // Identificadores alinhados as 3 classes do modelo YOLO11n-cls
-        // rodando on-device (ver mudancas no back-end para o scanner com IA, 07/10/2026).
+        // Identificadores alinhados as classes do modelo de classificacao
+        // rodando on-device. FIG-11 a FIG-16 vieram com a V5 (itens novos do
+        // Scanner); em bancos ja populados, quem as cria e a migration.
         String[][] dados = {
                 {"FIG-08", "Pilha", "PILHA",
                         "Pilhas têm metais como zinco e manganês, e alguns tipos têm níquel ou cádmio. " +
@@ -862,7 +863,26 @@ public class DataSeeder implements CommandLineRunner {
                                 "Descarte em um ponto de coleta de lixo eletrônico."},
                 {"FIG-10", "Ferro de passar", "FERRO_PASSAR",
                         "O ferro tem resistência metálica, fios de cobre e plástico. " +
-                                "Leve a um ponto de coleta de eletroeletrônicos."}
+                                "Leve a um ponto de coleta de eletroeletrônicos."},
+                {"FIG-11", "Celular", "CELULAR",
+                        "O celular tem bateria de íon-lítio e uma placa com cobre, ouro e chumbo. " +
+                                "Antes de descartar, apague seus dados e retire o chip. " +
+                                "Leve a um ponto de coleta de eletrônicos."},
+                {"FIG-12", "Monitor", "MONITOR",
+                        "Monitores antigos de tubo têm chumbo no vidro e alguns LCD antigos têm mercúrio nas lâmpadas. " +
+                                "Não quebre: leve o monitor inteiro a um ponto de coleta de eletroeletrônicos."},
+                {"FIG-13", "Teclado", "TECLADO",
+                        "O teclado tem plástico, membrana de silicone, fios de cobre e uma placa eletrônica. " +
+                                "Se ainda funciona, doe; se não, leve a um ponto de coleta de lixo eletrônico."},
+                {"FIG-14", "Notebook", "NOTEBOOK",
+                        "O notebook tem bateria de íon-lítio, placa-mãe com metais e um disco com seus dados. " +
+                                "Apague o disco com segurança antes de descartar e leve a um ponto de coleta."},
+                {"FIG-15", "Placa de circuito", "PLACA_CIRCUITO",
+                        "A placa de circuito tem cobre, ouro e prata, mas também solda de chumbo. " +
+                                "Nunca queime nem jogue no lixo comum: na reciclagem, os metais são recuperados."},
+                {"FIG-16", "HD", "HD",
+                        "O HD tem discos metálicos, ímãs de neodímio e uma placa com chumbo. " +
+                                "Ele guarda seus dados: apague com limpeza segura antes de descartar e leve a um ponto de coleta."}
         };
         int ordem = 8;
         for (String[] d : dados) {
