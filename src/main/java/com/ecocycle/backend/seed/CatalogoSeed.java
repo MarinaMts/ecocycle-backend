@@ -42,8 +42,10 @@ record CatalogoSeed(
     // ==================== Figurinhas SCAN ====================
 
     // Identificadores alinhados as classes do modelo de classificacao rodando
-    // on-device. FIG-11 a FIG-16 vieram com a V5 (itens novos do Scanner): os
-    // textos aqui sao identicos aos da migration, para o seed nao altera-los.
+    // on-device. FIG-11 a FIG-16 vieram com a V5 e FIG-17 e FIG-18 com a V7: os
+    // textos aqui sao identicos aos das migrations, para o seed nao altera-los.
+    // CELULAR, MONITOR e TECLADO nao estao no modelo atual: seguem no album,
+    // mas o app nao tem como reconhece-los por enquanto.
     private static final List<FigurinhaScanSeed> FIGURINHAS_SCAN = List.of(
             new FigurinhaScanSeed("FIG-08", "Pilha", "PILHA",
                     "Pilhas têm metais como zinco e manganês, e alguns tipos têm níquel ou cádmio. " +
@@ -72,7 +74,13 @@ record CatalogoSeed(
                             "Nunca queime nem jogue no lixo comum: na reciclagem, os metais são recuperados.", 15),
             new FigurinhaScanSeed("FIG-16", "HD", "HD",
                     "O HD tem discos metálicos, ímãs de neodímio e uma placa com chumbo. " +
-                            "Ele guarda seus dados: apague com limpeza segura antes de descartar e leve a um ponto de coleta.", 16)
+                            "Ele guarda seus dados: apague com limpeza segura antes de descartar e leve a um ponto de coleta.", 16),
+            new FigurinhaScanSeed("FIG-17", "Fonte de alimentação", "FONTE",
+                    "A fonte tem transformador com cobre, capacitores e uma placa com chumbo. " +
+                            "Não abra: os capacitores podem dar choque. Leve inteira a um ponto de coleta de eletrônicos.", 17),
+            new FigurinhaScanSeed("FIG-18", "Pendrive", "PENDRIVE",
+                    "O pendrive tem chip de memória e uma pequena placa com metais. " +
+                            "Ele guarda seus dados: apague tudo antes de descartar e leve a um ponto de coleta.", 18)
     );
 
     // ==================== Pontos de coleta ====================
