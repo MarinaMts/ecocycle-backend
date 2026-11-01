@@ -33,7 +33,7 @@ class ProgressoControllerIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.data.conteudosLidos").value(0))
                 .andExpect(jsonPath("$.data.quizzesConcluidos").value(0))
                 .andExpect(jsonPath("$.data.figurinhasDesbloqueadas").value(0))
-                .andExpect(jsonPath("$.data.totalFigurinhas").value(16));
+                .andExpect(jsonPath("$.data.totalFigurinhas").value(18));
     }
 
     @Test

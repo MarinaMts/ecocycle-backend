@@ -110,7 +110,7 @@ class DataSeederSincronizacaoTest {
 
         assertThat(contagens()).isEqualTo(antes);
         assertThat(antes.get("conteudos_educativos")).isEqualTo(7);
-        assertThat(antes.get("figurinhas")).isEqualTo(16);
+        assertThat(antes.get("figurinhas")).isEqualTo(18);
         assertThat(antes.get("pontos_coleta")).isEqualTo(15);
         assertNadaCriadoNemAtualizado(segunda);
     }
@@ -159,6 +159,22 @@ class DataSeederSincronizacaoTest {
         }
 
         new ResourceDatabasePopulator(new ClassPathResource("db/migration/V5__scanner_novos_itens.sql"))
+                .execute(dataSource);
+        assertThat(contagens()).isEqualTo(antes);
+
+        DataSeeder.Resumo resumo = dataSeeder.sincronizar(catalogo);
+
+        assertNadaCriadoNemAtualizado(resumo);
+    }
+
+    @Test
+    void figurinhasCriadasPelaMigrationV7NaoSaoAlteradasPeloSeed() {
+        Map<String, Long> antes = contagens();
+        for (String codigo : List.of("FIG-17", "FIG-18")) {
+            figurinhaRepository.delete(figurinhaRepository.findByCodigo(codigo).orElseThrow());
+        }
+
+        new ResourceDatabasePopulator(new ClassPathResource("db/migration/V7__scanner_fonte_pendrive.sql"))
                 .execute(dataSource);
         assertThat(contagens()).isEqualTo(antes);
 

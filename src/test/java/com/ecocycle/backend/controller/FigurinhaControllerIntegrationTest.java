@@ -29,7 +29,7 @@ class FigurinhaControllerIntegrationTest extends BaseIntegrationTest {
         mockMvc.perform(get("/api/v1/figurinhas")
                         .header("Authorization", bearer(token)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.length()").value(16))
+                .andExpect(jsonPath("$.data.length()").value(18))
                 .andExpect(jsonPath("$.data[0].desbloqueada").value(false))
                 .andExpect(jsonPath("$.data[0].nome").doesNotExist());
     }

@@ -2,6 +2,8 @@ package com.ecocycle.backend.controller;
 
 import com.ecocycle.backend.BaseIntegrationTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.http.MediaType;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -28,6 +30,25 @@ class ScannerControllerIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.data.figurinha.identificadorScan").doesNotExist()) // dto nao expoe esse campo
                 .andExpect(jsonPath("$.data.figurinha.desbloqueada").value(true))
                 .andExpect(jsonPath("$.data.figurinha.nome").isNotEmpty());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"FONTE, Fonte de alimentação", "PENDRIVE, Pendrive"})
+    void deveDesbloquearFigurinhasDosComponentesNovosDoModelo(String identificador, String nome) throws Exception {
+        String token = registrarERetornarToken();
+
+        String payload = """
+                {"identificadorComponente": "%s", "confianca": 95.0}
+                """.formatted(identificador);
+
+        mockMvc.perform(post("/api/v1/scanner/reconhecer")
+                        .header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.reconhecido").value(true))
+                .andExpect(jsonPath("$.data.novaDesbloqueada").value(true))
+                .andExpect(jsonPath("$.data.figurinha.nome").value(nome));
     }
 
     @Test
