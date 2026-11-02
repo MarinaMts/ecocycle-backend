@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ScannerService {
 
     private static final Logger log = LoggerFactory.getLogger(ScannerService.class);
+    private static final String IDENTIFICADOR_OUTROS = "OUTROS";
 
     private final double limiarConfianca;
     private final FigurinhaRepository figurinhaRepository;
@@ -52,27 +53,48 @@ public class ScannerService {
      * responsabilidade do app, ja que cada chamada aqui e stateless - o
      * back-end apenas informa se o resultado foi reconhecido ou nao.
      */
-    @Transactional
+    // noRollbackFor: a leitura de um identificador desconhecido precisa ser gravada
+    // mesmo com a requisicao terminando em 400.
+    @Transactional(noRollbackFor = ParametroInvalidoException.class)
     public ScanResultResponse processarScan(String email, ScanRequest request) {
         User user = userRepository.findByEmailAndAtivoTrue(email)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Usuario nao encontrado."));
 
         String identificador = request.getIdentificadorComponente().trim().toUpperCase();
         double confianca = request.getConfianca();
+        boolean manual = confianca == 100.0;
+
+        // Vem da classe Outros do modelo: a confianca aqui e a de NAO ser um
+        // componente conhecido, entao o limiar nao se aplica.
+        if (IDENTIFICADOR_OUTROS.equals(identificador)) {
+            log.info("Scan fora dos componentes reconhecidos. confianca={}%", arredondar(confianca));
+            registrarLeitura(user, identificador, confianca, false, false);
+            return new ScanResultResponse(
+                    false,
+                    identificador,
+                    confianca,
+                    false,
+                    null,
+                    "Objeto fora dos componentes reconhecidos."
+            );
+        }
 
         Figurinha figurinha = figurinhaRepository.findAll().stream()
                 .filter(f -> f.getTipo() == TipoFigurinha.SCAN)
                 .filter(f -> identificador.equals(f.getIdentificadorScan()))
                 .findFirst()
-                .orElseThrow(() -> new ParametroInvalidoException(
-                        "Identificador de componente desconhecido: '" + identificador + "'."
-                ));
+                .orElse(null);
 
-        boolean manual = confianca == 100.0;
+        if (figurinha == null) {
+            registrarLeitura(user, identificador, confianca, false, manual);
+            throw new ParametroInvalidoException(
+                    "Identificador de componente desconhecido: '" + identificador + "'."
+            );
+        }
 
         if (confianca < limiarConfianca) {
-            log.info("Scan abaixo do limiar de confianca. userId={}, identificador={}, confianca={}",
-                    user.getId(), identificador, confianca);
+            log.info("Scan abaixo do limiar de confianca. identificador={}, confianca={}%",
+                    identificador, arredondar(confianca));
             registrarLeitura(user, identificador, confianca, false, manual);
             return new ScanResultResponse(
                     false,
@@ -89,8 +111,8 @@ public class ScannerService {
         Figurinha novaDesbloqueada = figurinhaService.desbloquearSeNecessario(user, figurinha);
         boolean eraNova = (novaDesbloqueada != null);
 
-        log.info("Scan reconhecido. userId={}, identificador={}, confianca={}, novaDesbloqueada={}",
-                user.getId(), identificador, confianca, eraNova);
+        log.info("Scan reconhecido. identificador={}, confianca={}%, novaDesbloqueada={}",
+                identificador, arredondar(confianca), eraNova);
 
         registrarLeitura(user, identificador, confianca, true, manual);
 
@@ -101,6 +123,11 @@ public class ScannerService {
                 : "Componente reconhecido. Voce ja tinha essa figurinha.";
 
         return new ScanResultResponse(true, identificador, confianca, eraNova, figurinhaResponse, mensagem);
+    }
+
+    // So para leitura nos logs: leitura_scanner guarda o valor exato.
+    private static double arredondar(double confianca) {
+        return Math.round(confianca * 10) / 10.0;
     }
 
     private void registrarLeitura(User user, String identificador, double confianca, boolean reconhecido, boolean manual) {

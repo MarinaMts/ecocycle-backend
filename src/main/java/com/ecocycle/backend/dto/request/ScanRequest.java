@@ -4,6 +4,7 @@ import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 /**
  * Contrato do endpoint de scan (ver documento de decisoes tecnicas, secao 5).
@@ -15,7 +16,10 @@ public class ScanRequest {
 
     // Identificador estavel do componente, ex.: "PILHA", "MOUSE", "FERRO_PASSAR"
     // (deve corresponder ao campo identificadorScan das figurinhas do tipo SCAN)
+    // "OUTROS" = o modelo concluiu que a foto nao mostra nenhum componente conhecido.
+    // O limite acompanha leitura_scanner.identificador, onde toda leitura e registrada.
     @NotBlank(message = "O identificador do componente e obrigatorio")
+    @Size(max = 100, message = "O identificador do componente deve ter no maximo 100 caracteres")
     private String identificadorComponente;
 
     // Nivel de confianca em percentual (0-100), calculado pelo modelo TFLite no app

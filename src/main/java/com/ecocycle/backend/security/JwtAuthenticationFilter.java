@@ -71,7 +71,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     // (filtro mais externo da cadeia, ver SecurityConfig).
                     if (userDetails instanceof UserPrincipal principal) {
                         MDC.put("userId", String.valueOf(principal.getId()));
-                        MDC.put("userEmail", principal.getUsername());
                     }
                 }
             }
