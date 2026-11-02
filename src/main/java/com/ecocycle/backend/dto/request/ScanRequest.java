@@ -4,6 +4,7 @@ import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -28,6 +29,16 @@ public class ScanRequest {
     @DecimalMax(value = "100.0", message = "A confianca nao pode ser maior que 100")
     private Double confianca;
 
+    // Opcionais: segunda classe mais provavel do modelo, usada so nos logs.
+    // O formato restrito existe porque o valor vai para o log sem passar pelo catalogo.
+    @Size(max = 100, message = "O segundo identificador deve ter no maximo 100 caracteres")
+    @Pattern(regexp = "[A-Za-z0-9_]+", message = "O segundo identificador tem formato invalido")
+    private String segundoIdentificador;
+
+    @DecimalMin(value = "0.0", message = "A segunda confianca nao pode ser negativa")
+    @DecimalMax(value = "100.0", message = "A segunda confianca nao pode ser maior que 100")
+    private Double segundaConfianca;
+
     public String getIdentificadorComponente() {
         return identificadorComponente;
     }
@@ -42,5 +53,21 @@ public class ScanRequest {
 
     public void setConfianca(Double confianca) {
         this.confianca = confianca;
+    }
+
+    public String getSegundoIdentificador() {
+        return segundoIdentificador;
+    }
+
+    public void setSegundoIdentificador(String segundoIdentificador) {
+        this.segundoIdentificador = segundoIdentificador;
+    }
+
+    public Double getSegundaConfianca() {
+        return segundaConfianca;
+    }
+
+    public void setSegundaConfianca(Double segundaConfianca) {
+        this.segundaConfianca = segundaConfianca;
     }
 }

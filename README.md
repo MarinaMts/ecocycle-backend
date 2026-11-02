@@ -162,6 +162,8 @@ curl -X POST http://localhost:8080/api/v1/scanner/reconhecer \
   }'
 ```
 > Identificadores válidos nesta fase: `PILHA`, `MOUSE`, `FERRO_PASSAR`.
+>
+> Opcionais, usados só nos logs: `segundoIdentificador` e `segundaConfianca`, a segunda classe mais provável do modelo.
 
 ### Formato de respostas
 

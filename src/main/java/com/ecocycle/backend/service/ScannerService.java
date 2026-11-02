@@ -67,7 +67,7 @@ public class ScannerService {
         // Vem da classe Outros do modelo: a confianca aqui e a de NAO ser um
         // componente conhecido, entao o limiar nao se aplica.
         if (IDENTIFICADOR_OUTROS.equals(identificador)) {
-            log.info("Scan fora dos componentes reconhecidos. confianca={}%", arredondar(confianca));
+            log.info("Scan fora dos componentes reconhecidos. leitura={}", resumirLeitura(identificador, request));
             registrarLeitura(user, identificador, confianca, false, false);
             return new ScanResultResponse(
                     false,
@@ -93,8 +93,7 @@ public class ScannerService {
         }
 
         if (confianca < limiarConfianca) {
-            log.info("Scan abaixo do limiar de confianca. identificador={}, confianca={}%",
-                    identificador, arredondar(confianca));
+            log.info("Scan abaixo do limiar de confianca. leitura={}", resumirLeitura(identificador, request));
             registrarLeitura(user, identificador, confianca, false, manual);
             return new ScanResultResponse(
                     false,
@@ -111,8 +110,7 @@ public class ScannerService {
         Figurinha novaDesbloqueada = figurinhaService.desbloquearSeNecessario(user, figurinha);
         boolean eraNova = (novaDesbloqueada != null);
 
-        log.info("Scan reconhecido. identificador={}, confianca={}%, novaDesbloqueada={}",
-                identificador, arredondar(confianca), eraNova);
+        log.info("Scan reconhecido. leitura={}, novaDesbloqueada={}", resumirLeitura(identificador, request), eraNova);
 
         registrarLeitura(user, identificador, confianca, true, manual);
 
@@ -123,6 +121,16 @@ public class ScannerService {
                 : "Componente reconhecido. Voce ja tinha essa figurinha.";
 
         return new ScanResultResponse(true, identificador, confianca, eraNova, figurinhaResponse, mensagem);
+    }
+
+    // Ex.: "MOUSE 65.0% PENDRIVE 21.0%". A segunda classe so aparece se o app a enviar.
+    private static String resumirLeitura(String identificador, ScanRequest request) {
+        String primeira = identificador + " " + arredondar(request.getConfianca()) + "%";
+        if (request.getSegundoIdentificador() == null || request.getSegundaConfianca() == null) {
+            return primeira;
+        }
+        return primeira + " " + request.getSegundoIdentificador().toUpperCase()
+                + " " + arredondar(request.getSegundaConfianca()) + "%";
     }
 
     // So para leitura nos logs: leitura_scanner guarda o valor exato.
