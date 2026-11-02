@@ -4,9 +4,12 @@ import com.ecocycle.backend.BaseIntegrationTest;
 import com.ecocycle.backend.entity.LeituraScanner;
 import com.ecocycle.backend.repository.LeituraScannerRepository;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -215,6 +218,61 @@ class ScannerControllerIntegrationTest extends BaseIntegrationTest {
 
         String payload = """
                 {"identificadorComponente": "FERRO_PASSAR", "confianca": 150.0}
+                """;
+
+        mockMvc.perform(post("/api/v1/scanner/reconhecer")
+                        .header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension.class)
+    void deveLogarAsDuasClassesMaisProvaveis(CapturedOutput saida) throws Exception {
+        String token = registrarERetornarToken();
+
+        String payload = """
+                {"identificadorComponente": "MOUSE", "confianca": 65.04,
+                 "segundoIdentificador": "PENDRIVE", "segundaConfianca": 21.0}
+                """;
+
+        mockMvc.perform(post("/api/v1/scanner/reconhecer")
+                        .header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk());
+
+        assertThat(saida.getOut()).contains("leitura=MOUSE 65.0% PENDRIVE 21.0%");
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension.class)
+    void deveLogarSoAPrimeiraClasseQuandoOAppNaoEnviaASegunda(CapturedOutput saida) throws Exception {
+        String token = registrarERetornarToken();
+
+        String payload = """
+                {"identificadorComponente": "MOUSE", "confianca": 65.0}
+                """;
+
+        mockMvc.perform(post("/api/v1/scanner/reconhecer")
+                        .header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk());
+
+        assertThat(saida.getOut()).contains("leitura=MOUSE 65.0%");
+        assertThat(saida.getOut()).doesNotContain("null");
+    }
+
+    // O segundo identificador vai direto para o log: uma quebra de linha forjaria entradas.
+    @Test
+    void deveRejeitarSegundoIdentificadorComQuebraDeLinha() throws Exception {
+        String token = registrarERetornarToken();
+
+        String payload = """
+                {"identificadorComponente": "MOUSE", "confianca": 65.0,
+                 "segundoIdentificador": "PENDRIVE\\nFALSO", "segundaConfianca": 21.0}
                 """;
 
         mockMvc.perform(post("/api/v1/scanner/reconhecer")
