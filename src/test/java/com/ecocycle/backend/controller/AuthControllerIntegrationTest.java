@@ -8,6 +8,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -31,6 +32,71 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.data.user.email").value(email))
                 .andExpect(jsonPath("$.data.user.apelido").value(apelido))
                 .andExpect(jsonPath("$.data.user.avatar").value("AVATAR_01"));
+    }
+
+    @Test
+    void deveRegistrarOAceiteDosTermosComDataEVersao() throws Exception {
+        String payload = """
+                {"email": "%s", "apelido": "%s", "senha": "senha123",
+                 "aceitouTermos": true, "versaoTermos": "1.0"}
+                """.formatted(emailAleatorio(), apelidoAleatorio());
+
+        MvcResult result = mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.user.termosAceitosEm").isNotEmpty())
+                .andExpect(jsonPath("$.data.user.termosVersao").value("1.0"))
+                .andReturn();
+
+        String token = objectMapper.readTree(result.getResponse().getContentAsString())
+                .get("data").get("token").asText();
+
+        // continua salvo depois (GET /users/me)
+        mockMvc.perform(get("/api/v1/users/me").header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.termosAceitosEm").isNotEmpty())
+                .andExpect(jsonPath("$.data.termosVersao").value("1.0"));
+    }
+
+    @Test
+    void deveUsarVersaoPadraoQuandoOAppNaoInformar() throws Exception {
+        String payload = """
+                {"email": "%s", "apelido": "%s", "senha": "senha123", "aceitouTermos": true}
+                """.formatted(emailAleatorio(), apelidoAleatorio());
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.user.termosVersao").value("1.0"));
+    }
+
+    @Test
+    void deveRejeitarRegistroSemAceitarOsTermos() throws Exception {
+        String payload = """
+                {"email": "%s", "apelido": "%s", "senha": "senha123", "aceitouTermos": false}
+                """.formatted(emailAleatorio(), apelidoAleatorio());
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void appAntigoSemOCampoContinuaCadastrandoSemRegistrarAceite() throws Exception {
+        // versoes do app que ainda nao enviam aceitouTermos nao podem quebrar
+        String payload = """
+                {"email": "%s", "apelido": "%s", "senha": "senha123"}
+                """.formatted(emailAleatorio(), apelidoAleatorio());
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.user.termosAceitosEm").doesNotExist())
+                .andExpect(jsonPath("$.data.user.termosVersao").doesNotExist());
     }
 
     @Test
