@@ -107,7 +107,7 @@ Prefixo de versionamento: `/api/v1`. Rotas marcadas com 🔒 exigem header `Auth
 | Auth | POST | `/auth/login` | Autentica e retorna um token JWT |
 | Usuários 🔒 | GET | `/users/me` | Dados do usuário autenticado |
 | Usuários 🔒 | PATCH | `/users/me/avatar` | Atualiza o avatar |
-| Usuários 🔒 | DELETE | `/users/me` | Desativa a conta (soft delete) |
+| Usuários 🔒 | DELETE | `/users/me` | Exclui a conta e todos os dados do usuário (definitivo) |
 | Trilhas 🔒 | GET | `/trilhas` | Lista as trilhas com status de leitura/quiz |
 | Conteúdo 🔒 | GET | `/conteudos/{id}` | Texto completo de um conteúdo |
 | Conteúdo 🔒 | POST | `/conteudos/{id}/marcar-lido` | Marca como lido (libera o quiz) |

@@ -40,10 +40,10 @@ public class UserController {
     }
 
     @DeleteMapping("/me")
-    public ResponseEntity<ApiResponse<Void>> desativarConta(
+    public ResponseEntity<ApiResponse<Void>> excluirConta(
             @AuthenticationPrincipal UserPrincipal principal
     ) {
-        userService.desativarConta(principal.getUsername());
-        return ResponseEntity.ok(ApiResponse.of(null, "Conta desativada com sucesso."));
+        userService.excluirConta(principal.getUsername());
+        return ResponseEntity.ok(ApiResponse.of(null, "Conta e dados excluidos definitivamente."));
     }
 }
