@@ -2,6 +2,7 @@ package com.ecocycle.backend.controller;
 
 import com.ecocycle.backend.dto.request.SubmeterQuizRequest;
 import com.ecocycle.backend.dto.response.ApiResponse;
+import com.ecocycle.backend.dto.response.QuizCorrecaoResponse;
 import com.ecocycle.backend.dto.response.QuizResponse;
 import com.ecocycle.backend.dto.response.QuizResultadoResponse;
 import com.ecocycle.backend.security.UserPrincipal;
@@ -33,6 +34,16 @@ public class QuizController {
     public ResponseEntity<ApiResponse<QuizResponse>> buscarPorId(@PathVariable Long id) {
         QuizResponse quiz = quizService.buscarPorId(id);
         return ResponseEntity.ok(ApiResponse.of(quiz));
+    }
+
+    /** Correcao da ultima tentativa do usuario (o que marcou x a correta). */
+    @GetMapping("/{id}/correcao")
+    public ResponseEntity<ApiResponse<QuizCorrecaoResponse>> buscarCorrecao(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long id
+    ) {
+        QuizCorrecaoResponse correcao = quizService.buscarCorrecao(principal.getUsername(), id);
+        return ResponseEntity.ok(ApiResponse.of(correcao));
     }
 
     @PostMapping("/{id}/submeter")

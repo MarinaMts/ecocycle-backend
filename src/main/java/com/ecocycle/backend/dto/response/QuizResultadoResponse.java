@@ -1,5 +1,7 @@
 package com.ecocycle.backend.dto.response;
 
+import java.util.List;
+
 public class QuizResultadoResponse {
 
     private Integer acertos;
@@ -8,13 +10,16 @@ public class QuizResultadoResponse {
     private Integer xpGanho;
     private Integer xpTotalAtual;
     private FigurinhaResponse figurinhaDesbloqueada;
+    // Correcao desta tentativa, pergunta a pergunta (na ordem do quiz).
+    private List<CorrecaoPerguntaResponse> correcao;
 
     public QuizResultadoResponse() {
     }
 
     public QuizResultadoResponse(
             Integer acertos, Integer totalPerguntas, boolean primeiraConclusao,
-            Integer xpGanho, Integer xpTotalAtual, FigurinhaResponse figurinhaDesbloqueada
+            Integer xpGanho, Integer xpTotalAtual, FigurinhaResponse figurinhaDesbloqueada,
+            List<CorrecaoPerguntaResponse> correcao
     ) {
         this.acertos = acertos;
         this.totalPerguntas = totalPerguntas;
@@ -22,6 +27,7 @@ public class QuizResultadoResponse {
         this.xpGanho = xpGanho;
         this.xpTotalAtual = xpTotalAtual;
         this.figurinhaDesbloqueada = figurinhaDesbloqueada;
+        this.correcao = correcao;
     }
 
     public Integer getAcertos() {
@@ -70,5 +76,13 @@ public class QuizResultadoResponse {
 
     public void setFigurinhaDesbloqueada(FigurinhaResponse figurinhaDesbloqueada) {
         this.figurinhaDesbloqueada = figurinhaDesbloqueada;
+    }
+
+    public List<CorrecaoPerguntaResponse> getCorrecao() {
+        return correcao;
+    }
+
+    public void setCorrecao(List<CorrecaoPerguntaResponse> correcao) {
+        this.correcao = correcao;
     }
 }

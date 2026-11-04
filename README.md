@@ -112,7 +112,8 @@ Prefixo de versionamento: `/api/v1`. Rotas marcadas com 🔒 exigem header `Auth
 | Conteúdo 🔒 | GET | `/conteudos/{id}` | Texto completo de um conteúdo |
 | Conteúdo 🔒 | POST | `/conteudos/{id}/marcar-lido` | Marca como lido (libera o quiz) |
 | Quizzes 🔒 | GET | `/quizzes/por-conteudo/{id}` | Quiz de um conteúdo (sem gabarito) |
-| Quizzes 🔒 | POST | `/quizzes/{id}/submeter` | Corrige, concede XP e desbloqueia figurinha |
+| Quizzes 🔒 | POST | `/quizzes/{id}/submeter` | Corrige, concede XP, desbloqueia figurinha e devolve a correção pergunta a pergunta |
+| Quizzes 🔒 | GET | `/quizzes/{id}/correcao` | Correção da última tentativa do usuário (marcada × correta); 404 se ainda não respondeu |
 | Figurinhas 🔒 | GET | `/figurinhas` | Catálogo do álbum |
 | Figurinhas 🔒 | GET | `/figurinhas/{id}` | Detalhe de uma figurinha |
 | Progresso 🔒 | GET | `/progresso/me` | XP, leituras, quizzes e figurinhas do usuário |
