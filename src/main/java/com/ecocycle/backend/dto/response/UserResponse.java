@@ -14,6 +14,8 @@ public class UserResponse {
     private String apelido;
     private String avatar;
     private LocalDateTime criadoEm;
+    private LocalDateTime termosAceitosEm;
+    private String termosVersao;
 
     public UserResponse() {
     }
@@ -33,7 +35,13 @@ public class UserResponse {
                 user.getApelido(),
                 user.getAvatar() != null ? user.getAvatar().name() : null,
                 user.getCriadoEm()
-        );
+        ).comTermos(user.getTermosAceitosEm(), user.getTermosVersao());
+    }
+
+    private UserResponse comTermos(LocalDateTime aceitosEm, String versao) {
+        this.termosAceitosEm = aceitosEm;
+        this.termosVersao = versao;
+        return this;
     }
 
     public Long getId() {
@@ -74,5 +82,21 @@ public class UserResponse {
 
     public void setCriadoEm(LocalDateTime criadoEm) {
         this.criadoEm = criadoEm;
+    }
+
+    public LocalDateTime getTermosAceitosEm() {
+        return termosAceitosEm;
+    }
+
+    public void setTermosAceitosEm(LocalDateTime termosAceitosEm) {
+        this.termosAceitosEm = termosAceitosEm;
+    }
+
+    public String getTermosVersao() {
+        return termosVersao;
+    }
+
+    public void setTermosVersao(String termosVersao) {
+        this.termosVersao = termosVersao;
     }
 }

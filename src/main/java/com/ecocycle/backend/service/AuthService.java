@@ -22,12 +22,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @Service
 public class AuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
+
+    // Versao registrada quando o app aceita os termos sem informar qual.
+    static final String VERSAO_TERMOS_PADRAO = "1.0";
 
     // Filtro basico de palavras improprias no apelido (ver documento de decisoes tecnicas, secao 1.1).
     // Lista minima; pode ser expandida conforme necessidade.
@@ -72,6 +76,12 @@ public class AuthService {
                 .avatar(Avatar.AVATAR_01)
                 .ativo(true)
                 .build();
+
+        if (Boolean.TRUE.equals(request.getAceitouTermos())) {
+            String versao = request.getVersaoTermos();
+            user.setTermosAceitosEm(LocalDateTime.now());
+            user.setTermosVersao(versao == null || versao.isBlank() ? VERSAO_TERMOS_PADRAO : versao.trim());
+        }
 
         User salvo = userRepository.save(user);
         log.info("Novo usuario cadastrado. id={}", salvo.getId());

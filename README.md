@@ -103,7 +103,7 @@ Prefixo de versionamento: `/api/v1`. Rotas marcadas com 🔒 exigem header `Auth
 
 | Módulo | Método | Rota | Descrição |
 |---|---|---|---|
-| Auth | POST | `/auth/register` | Cria uma nova conta |
+| Auth | POST | `/auth/register` | Cria uma nova conta (com `aceitouTermos`/`versaoTermos`, registra o aceite dos termos) |
 | Auth | POST | `/auth/login` | Autentica e retorna um token JWT |
 | Usuários 🔒 | GET | `/users/me` | Dados do usuário autenticado |
 | Usuários 🔒 | PATCH | `/users/me/avatar` | Atualiza o avatar |

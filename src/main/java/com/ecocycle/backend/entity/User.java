@@ -52,6 +52,14 @@ public class User {
     @Builder.Default
     private Integer xpTotal = 0;
 
+    // Aceite dos Termos de Uso e da Politica de Privacidade (LGPD): quando e
+    // qual versao. Nulo em contas anteriores ao registro do aceite.
+    @Column(name = "termos_aceitos_em")
+    private LocalDateTime termosAceitosEm;
+
+    @Column(name = "termos_versao", length = 20)
+    private String termosVersao;
+
     @Column(name = "criado_em", nullable = false, updatable = false)
     private LocalDateTime criadoEm;
 
