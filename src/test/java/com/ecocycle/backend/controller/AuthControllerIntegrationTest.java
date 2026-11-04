@@ -234,7 +234,7 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void deveRejeitarLoginAposDesativarConta() throws Exception {
+    void deveRejeitarLoginAposExcluirConta() throws Exception {
         String email = emailAleatorio();
         String senha = "senha123";
         String payloadRegister = """
@@ -250,7 +250,7 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
         JsonNode json = objectMapper.readTree(registerResult.getResponse().getContentAsString());
         String token = json.get("data").get("token").asText();
 
-        // Desativa a propria conta (soft delete)
+        // Exclui a propria conta (definitivo)
         mockMvc.perform(delete("/api/v1/users/me")
                         .header("Authorization", bearer(token)))
                 .andExpect(status().isOk());
