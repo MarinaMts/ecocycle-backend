@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Resultado consolidado do usuario em um quiz - apenas total de acertos/erros
@@ -53,6 +55,11 @@ public class QuizResultado {
 
     @Column(name = "ultima_tentativa_em", nullable = false)
     private LocalDateTime ultimaTentativaEm;
+
+    // Alternativas escolhidas na ultima tentativa (uma por pergunta).
+    @OneToMany(mappedBy = "quizResultado", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<QuizResposta> respostas = new ArrayList<>();
 
     @PrePersist
     protected void aoPersistir() {

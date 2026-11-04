@@ -1,14 +1,17 @@
 package com.ecocycle.backend.service;
 
 import com.ecocycle.backend.dto.request.SubmeterQuizRequest;
+import com.ecocycle.backend.dto.response.CorrecaoPerguntaResponse;
 import com.ecocycle.backend.dto.response.FigurinhaResponse;
 import com.ecocycle.backend.dto.response.PerguntaResponse;
+import com.ecocycle.backend.dto.response.QuizCorrecaoResponse;
 import com.ecocycle.backend.dto.response.QuizResponse;
 import com.ecocycle.backend.dto.response.QuizResultadoResponse;
 import com.ecocycle.backend.entity.Alternativa;
 import com.ecocycle.backend.entity.Figurinha;
 import com.ecocycle.backend.entity.Pergunta;
 import com.ecocycle.backend.entity.Quiz;
+import com.ecocycle.backend.entity.QuizResposta;
 import com.ecocycle.backend.entity.QuizResultado;
 import com.ecocycle.backend.entity.User;
 import com.ecocycle.backend.exception.ConteudoNaoLidoException;
@@ -25,6 +28,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -126,6 +132,8 @@ public class QuizService {
                 ));
 
         int acertos = 0;
+        List<CorrecaoPerguntaResponse> correcao = new ArrayList<>();
+        Map<Long, Alternativa> escolhidaPorPergunta = new HashMap<>();
         for (Pergunta pergunta : perguntas) {
             Long alternativaEscolhidaId = respostaEscolhidaPorPergunta.get(pergunta.getId());
             if (alternativaEscolhidaId == null) {
@@ -141,15 +149,19 @@ public class QuizService {
                             "Pergunta " + pergunta.getId() + " nao possui alternativa correta cadastrada."
                     ));
 
-            boolean pertenceAPergunta = pergunta.getAlternativas().stream()
-                    .anyMatch(a -> a.getId().equals(alternativaEscolhidaId));
-            if (!pertenceAPergunta) {
-                throw new RespostasQuizInvalidasException(
-                        "A alternativa informada nao pertence a pergunta " + pergunta.getId() + "."
-                );
-            }
+            Alternativa escolhida = pergunta.getAlternativas().stream()
+                    .filter(a -> a.getId().equals(alternativaEscolhidaId))
+                    .findFirst()
+                    .orElseThrow(() -> new RespostasQuizInvalidasException(
+                            "A alternativa informada nao pertence a pergunta " + pergunta.getId() + "."
+                    ));
+            escolhidaPorPergunta.put(pergunta.getId(), escolhida);
 
-            if (correta.getId().equals(alternativaEscolhidaId)) {
+            CorrecaoPerguntaResponse item = new CorrecaoPerguntaResponse(
+                    pergunta.getId(), pergunta.getOrdem(), escolhida.getId(), correta.getId()
+            );
+            correcao.add(item);
+            if (item.isAcertou()) {
                 acertos++;
             }
         }
@@ -192,6 +204,7 @@ public class QuizService {
                 resultado.setAcertos(acertos);
             }
             resultado.setTotalPerguntas(perguntas.size());
+            resultado.setUltimaTentativaEm(LocalDateTime.now());
             log.info("Quiz refeito. userId={}, quizId={}, acertos={}/{}, melhorAnterior={}, xp={}",
                     user.getId(), quizId, acertos, perguntas.size(), melhorAnterior, xpGanho);
         }
@@ -201,6 +214,7 @@ public class QuizService {
             userRepository.save(user);
         }
 
+        guardarRespostas(resultado, perguntas, escolhidaPorPergunta);
         quizResultadoRepository.save(resultado);
 
         return new QuizResultadoResponse(
@@ -209,7 +223,86 @@ public class QuizService {
                 primeiraConclusao,
                 xpGanho,
                 user.getXpTotal(),
-                figurinhaResponse
+                figurinhaResponse,
+                correcao
+        );
+    }
+
+    /**
+     * Substitui as respostas guardadas pelas da tentativa atual. Atualiza as
+     * linhas existentes em vez de apagar e recriar, para nao esbarrar na
+     * unicidade (resultado, pergunta) durante o flush.
+     */
+    private void guardarRespostas(
+            QuizResultado resultado, List<Pergunta> perguntas, Map<Long, Alternativa> escolhidaPorPergunta
+    ) {
+        Map<Long, QuizResposta> existentes = new HashMap<>();
+        for (QuizResposta resposta : resultado.getRespostas()) {
+            existentes.put(resposta.getPergunta().getId(), resposta);
+        }
+        resultado.getRespostas().removeIf(r -> !escolhidaPorPergunta.containsKey(r.getPergunta().getId()));
+
+        for (Pergunta pergunta : perguntas) {
+            Alternativa escolhida = escolhidaPorPergunta.get(pergunta.getId());
+            QuizResposta resposta = existentes.get(pergunta.getId());
+            if (resposta == null) {
+                resposta = QuizResposta.builder()
+                        .quizResultado(resultado)
+                        .pergunta(pergunta)
+                        .build();
+                resultado.getRespostas().add(resposta);
+            }
+            resposta.setAlternativa(escolhida);
+        }
+    }
+
+    /**
+     * Correcao da ultima tentativa do usuario no quiz: o que ele marcou e qual
+     * era a alternativa correta em cada pergunta. Resultados anteriores a esta
+     * funcionalidade nao tem respostas guardadas - nesse caso, 404 ate o
+     * usuario responder o quiz de novo.
+     */
+    @Transactional(readOnly = true)
+    public QuizCorrecaoResponse buscarCorrecao(String email, Long quizId) {
+        User user = userRepository.findByEmailAndAtivoTrue(email)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuario nao encontrado."));
+
+        if (!quizRepository.existsById(quizId)) {
+            throw new RecursoNaoEncontradoException("Quiz nao encontrado.");
+        }
+
+        QuizResultado resultado = quizResultadoRepository.findByUser_IdAndQuiz_Id(user.getId(), quizId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Voce ainda nao respondeu este quiz."));
+
+        Map<Long, Long> escolhidaPorPergunta = new HashMap<>();
+        for (QuizResposta resposta : resultado.getRespostas()) {
+            escolhidaPorPergunta.put(resposta.getPergunta().getId(), resposta.getAlternativa().getId());
+        }
+        if (escolhidaPorPergunta.isEmpty()) {
+            throw new RecursoNaoEncontradoException(
+                    "Nao ha correcao salva para este quiz. Responda o quiz novamente para ver a correcao."
+            );
+        }
+
+        List<CorrecaoPerguntaResponse> correcao = new ArrayList<>();
+        for (Pergunta pergunta : perguntaRepository.findByQuizIdComAlternativas(quizId)) {
+            Long escolhidaId = escolhidaPorPergunta.get(pergunta.getId());
+            if (escolhidaId == null) {
+                continue;
+            }
+            Long corretaId = pergunta.getAlternativas().stream()
+                    .filter(Alternativa::getCorreta)
+                    .map(Alternativa::getId)
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalStateException(
+                            "Pergunta " + pergunta.getId() + " nao possui alternativa correta cadastrada."
+                    ));
+            correcao.add(new CorrecaoPerguntaResponse(pergunta.getId(), pergunta.getOrdem(), escolhidaId, corretaId));
+        }
+
+        int acertos = (int) correcao.stream().filter(CorrecaoPerguntaResponse::isAcertou).count();
+        return new QuizCorrecaoResponse(
+                quizId, acertos, correcao.size(), resultado.getUltimaTentativaEm(), correcao
         );
     }
 }

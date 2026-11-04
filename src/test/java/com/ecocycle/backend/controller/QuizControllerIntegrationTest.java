@@ -58,7 +58,12 @@ class QuizControllerIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.data.xpGanho").value(50))
                 .andExpect(jsonPath("$.data.xpTotalAtual").value(50))
                 .andExpect(jsonPath("$.data.figurinhaDesbloqueada.codigo").value("FIG-01"))
-                .andExpect(jsonPath("$.data.figurinhaDesbloqueada.desbloqueada").value(true));
+                .andExpect(jsonPath("$.data.figurinhaDesbloqueada.desbloqueada").value(true))
+                // correcao pergunta a pergunta, na ordem do quiz
+                .andExpect(jsonPath("$.data.correcao.length()").value(5))
+                .andExpect(jsonPath("$.data.correcao[0].ordem").value(1))
+                .andExpect(jsonPath("$.data.correcao[*].acertou").value(org.hamcrest.Matchers.everyItem(
+                        org.hamcrest.Matchers.is(true))));
     }
 
     @Test
@@ -139,7 +144,104 @@ class QuizControllerIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.data.acertos").value(0))
                 .andExpect(jsonPath("$.data.primeiraConclusao").value(true))
                 .andExpect(jsonPath("$.data.xpGanho").value(0))
-                .andExpect(jsonPath("$.data.figurinhaDesbloqueada.codigo").value("FIG-01"));
+                .andExpect(jsonPath("$.data.figurinhaDesbloqueada.codigo").value("FIG-01"))
+                .andExpect(jsonPath("$.data.correcao.length()").value(5))
+                .andExpect(jsonPath("$.data.correcao[*].acertou").value(org.hamcrest.Matchers.everyItem(
+                        org.hamcrest.Matchers.is(false))));
+    }
+
+    @Test
+    void correcaoDeveApontarAlternativaEscolhidaECorreta() throws Exception {
+        String token = registrarERetornarToken();
+        marcarConteudoComoLido(token, CONTEUDO_ID_EDU01);
+        Pergunta primeira = perguntaRepository.findByQuizIdComAlternativas(QUIZ_ID_EDU01).get(0);
+        Long corretaId = primeira.getAlternativas().stream()
+                .filter(Alternativa::getCorreta).findFirst().orElseThrow().getId();
+        Long erradaId = primeira.getAlternativas().stream()
+                .filter(a -> !a.getCorreta()).findFirst().orElseThrow().getId();
+
+        mockMvc.perform(post("/api/v1/quizzes/" + QUIZ_ID_EDU01 + "/submeter")
+                        .header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(montarPayloadComRespostas(QUIZ_ID_EDU01, false)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.correcao[0].perguntaId").value(primeira.getId()))
+                .andExpect(jsonPath("$.data.correcao[0].alternativaEscolhidaId").value(erradaId))
+                .andExpect(jsonPath("$.data.correcao[0].alternativaCorretaId").value(corretaId))
+                .andExpect(jsonPath("$.data.correcao[0].acertou").value(false));
+    }
+
+    @Test
+    void deveRetornarCorrecaoDaUltimaTentativaDepoisDeSairEVoltar() throws Exception {
+        String token = registrarERetornarToken();
+        marcarConteudoComoLido(token, CONTEUDO_ID_EDU01);
+
+        mockMvc.perform(post("/api/v1/quizzes/" + QUIZ_ID_EDU01 + "/submeter")
+                        .header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(montarPayloadComRespostas(QUIZ_ID_EDU01, true)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/quizzes/" + QUIZ_ID_EDU01 + "/correcao")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.quizId").value(QUIZ_ID_EDU01))
+                .andExpect(jsonPath("$.data.acertos").value(5))
+                .andExpect(jsonPath("$.data.totalPerguntas").value(5))
+                .andExpect(jsonPath("$.data.respondidoEm").exists())
+                .andExpect(jsonPath("$.data.correcao.length()").value(5))
+                .andExpect(jsonPath("$.data.correcao[*].acertou").value(org.hamcrest.Matchers.everyItem(
+                        org.hamcrest.Matchers.is(true))));
+
+        // refazendo pior: a correcao mostra a ultima tentativa, mas o melhor
+        // resultado (e o XP) continuam valendo
+        mockMvc.perform(post("/api/v1/quizzes/" + QUIZ_ID_EDU01 + "/submeter")
+                        .header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(montarPayloadComRespostas(QUIZ_ID_EDU01, false)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/quizzes/" + QUIZ_ID_EDU01 + "/correcao")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.acertos").value(0))
+                .andExpect(jsonPath("$.data.correcao.length()").value(5))
+                .andExpect(jsonPath("$.data.correcao[*].acertou").value(org.hamcrest.Matchers.everyItem(
+                        org.hamcrest.Matchers.is(false))));
+
+        mockMvc.perform(get("/api/v1/progresso/me")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.xpTotal").value(50));
+    }
+
+    @Test
+    void correcaoDeQuizNaoRespondidoDeveRetornar404() throws Exception {
+        String token = registrarERetornarToken();
+
+        mockMvc.perform(get("/api/v1/quizzes/" + QUIZ_ID_EDU01 + "/correcao")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(get("/api/v1/quizzes/9999/correcao")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void correcaoNaoDeveVazarRespostasDeOutroUsuario() throws Exception {
+        String tokenA = registrarERetornarToken();
+        marcarConteudoComoLido(tokenA, CONTEUDO_ID_EDU01);
+        mockMvc.perform(post("/api/v1/quizzes/" + QUIZ_ID_EDU01 + "/submeter")
+                        .header("Authorization", bearer(tokenA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(montarPayloadComRespostas(QUIZ_ID_EDU01, true)))
+                .andExpect(status().isOk());
+
+        String tokenB = registrarERetornarToken();
+        mockMvc.perform(get("/api/v1/quizzes/" + QUIZ_ID_EDU01 + "/correcao")
+                        .header("Authorization", bearer(tokenB)))
+                .andExpect(status().isNotFound());
     }
 
     @Test
